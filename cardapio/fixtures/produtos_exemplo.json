@@ -1,0 +1,29 @@
+[
+  {
+    "model": "cardapio.produto",
+    "pk": 1,
+    "fields": {
+      "nome": "Bolo de milho",
+      "preco_centavos": 850,
+      "ativo": true
+    }
+  },
+  {
+    "model": "cardapio.produto",
+    "pk": 2,
+    "fields": {
+      "nome": "Café",
+      "preco_centavos": 450,
+      "ativo": true
+    }
+  },
+  {
+    "model": "cardapio.produto",
+    "pk": 3,
+    "fields": {
+      "nome": "Suco",
+      "preco_centavos": 700,
+      "ativo": false
+    }
+  }
+]

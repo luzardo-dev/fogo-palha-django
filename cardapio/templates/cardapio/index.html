@@ -1,0 +1,50 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Cardápio de referência desenvolvido com Django e SQLite.">
+    <title>Fogo de Palha | Cardápio</title>
+    <link rel="stylesheet" href="{% static 'cardapio/css/estilo.css' %}">
+</head>
+<body>
+    <header class="cabecalho">
+        <div class="limite cabecalho-conteudo">
+            <a class="marca" href="{% url 'cardapio:inicio' %}">Fogo de Palha</a>
+            <a class="link-admin" href="{% url 'admin:index' %}">Área administrativa</a>
+        </div>
+    </header>
+
+    <main class="limite conteudo-principal">
+        <section class="apresentacao" aria-labelledby="titulo-cardapio">
+            <p class="etiqueta">Projeto de referência • Django + SQLite</p>
+            <h1 id="titulo-cardapio">Cardápio da casa</h1>
+            <p>Produtos cadastrados no banco e marcados como ativos aparecem automaticamente aqui.</p>
+        </section>
+
+        <section aria-label="Produtos disponíveis">
+            <div class="grade-produtos">
+                {% for produto in produtos %}
+                    <article class="produto">
+                        <div class="produto-icone" aria-hidden="true">☕</div>
+                        <h2>{{ produto.nome }}</h2>
+                        <p class="preco">{{ produto.preco_formatado }}</p>
+                        <span class="disponivel">Disponível</span>
+                    </article>
+                {% empty %}
+                    <div class="estado-vazio">
+                        <h2>Cardápio em preparação</h2>
+                        <p>Nenhum produto disponível no momento.</p>
+                        <p>Cadastre ou ative produtos pela área administrativa.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="limite">Projeto didático para aprender Django.</div>
+    </footer>
+</body>
+</html>

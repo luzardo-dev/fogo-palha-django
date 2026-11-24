@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Ambiente virtual
+.venv/
+venv/
+
+# Django local
+*.sqlite3
+media/
+staticfiles/
+
+# Configuração local e segredos
+.env
+.env.*
+!.env.example
+
+# Ferramentas e editores
+.pytest_cache/
+.ruff_cache/
+.vscode/
+.idea/
+.DS_Store
