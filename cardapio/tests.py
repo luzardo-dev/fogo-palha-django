@@ -1,5 +1,11 @@
+import base64
+import tempfile
+from pathlib import Path
+
+from django.conf import settings
 from django.contrib import admin
-from django.test import SimpleTestCase, TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import SimpleTestCase, TestCase, override_settings
 
 from cardapio import regras
 from cardapio.models import Produto
@@ -14,6 +20,8 @@ class ProdutoTests(SimpleTestCase):
             campos["preco_centavos"].get_internal_type(), "PositiveIntegerField"
         )
         self.assertTrue(campos["ativo"].default)
+        self.assertEqual(campos["imagem"].upload_to, "produtos/")
+        self.assertTrue(campos["imagem"].blank)
 
     def test_representacao_textual_usa_o_nome(self):
         produto = Produto(nome="Bolo de milho", preco_centavos=850)
@@ -59,6 +67,31 @@ class CatalogoTests(TestCase):
         resposta = self.client.get("/")
 
         self.assertContains(resposta, "Nenhum produto disponível no momento.")
+
+    def test_pagina_exibe_imagem_enviada_e_fallback_sem_imagem(self):
+        png = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+        )
+        upload = SimpleUploadedFile("cafe.png", png, content_type="image/png")
+
+        with tempfile.TemporaryDirectory() as diretorio:
+            with override_settings(MEDIA_ROOT=diretorio, MEDIA_URL="/media/"):
+                com_imagem = Produto.objects.create(
+                    nome="Café", preco_centavos=450, imagem=upload
+                )
+                Produto.objects.create(nome="Bolo", preco_centavos=850)
+
+                resposta = self.client.get("/")
+
+                self.assertContains(resposta, com_imagem.imagem.url)
+                self.assertContains(resposta, "produto-sem-imagem")
+                self.assertTrue(Path(com_imagem.imagem.path).is_file())
+
+
+class ConfiguracaoMediaTests(SimpleTestCase):
+    def test_uploads_usam_diretorio_media_local(self):
+        self.assertEqual(settings.MEDIA_URL, "/media/")
+        self.assertEqual(settings.MEDIA_ROOT, settings.BASE_DIR / "media")
 
 
 class AdminTests(SimpleTestCase):

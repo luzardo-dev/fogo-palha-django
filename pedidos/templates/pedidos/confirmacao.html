@@ -1,0 +1,33 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pedido confirmado | Fogo de Palha</title>
+    <link rel="stylesheet" href="{% static 'cardapio/css/estilo.css' %}">
+</head>
+<body>
+    <header class="cabecalho">
+        <div class="limite cabecalho-conteudo">
+            <a class="marca" href="{% url 'cardapio:inicio' %}">Fogo de Palha</a>
+            <a class="link-admin" href="{% url 'admin:index' %}">Área administrativa</a>
+        </div>
+    </header>
+    <main class="limite conteudo-principal">
+        <section class="confirmacao">
+            <p class="etiqueta">Pedido #{{ pedido.pk }}</p>
+            <h1>Pedido confirmado</h1>
+            <p>Obrigado, <strong>{{ pedido.cliente_nome }}</strong>.</p>
+            <ul class="lista-itens">
+                {% for item in pedido.itens.all %}
+                    <li><span>{{ item.quantidade }} × {{ item.produto_nome }}</span><strong>{{ item.subtotal_formatado }}</strong></li>
+                {% endfor %}
+            </ul>
+            <p class="total-pedido">Total: {{ pedido.total_formatado }}</p>
+            <p>Este é um projeto didático: nenhum pagamento foi realizado.</p>
+            <a class="botao" href="{% url 'cardapio:inicio' %}">Voltar ao cardápio</a>
+        </section>
+    </main>
+</body>
+</html>

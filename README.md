@@ -1,18 +1,22 @@
 # Fogo de Palha — projeto Django de referência
 
-Projeto didático do Dia 18 da disciplina Desenvolvimento de Aplicações Web. Ele continua os exemplos dos Dias 16 e 17 e mostra como guardar produtos no SQLite usando o ORM e a administração do Django.
+Projeto didático do Dia 18 da disciplina Desenvolvimento de Aplicações Web. Ele continua os exemplos dos Dias 16 e 17 e demonstra catálogo, upload de imagens e pedidos persistidos em SQLite.
 
 ## O que o projeto demonstra
 
-- Python 3.12 e Django 5.2 LTS;
-- projeto Django `config` e aplicação `cardapio`;
-- modelo `Produto` com `nome`, `preco_centavos` e `ativo`;
-- migrations e banco SQLite local;
-- cadastro de produtos pelo Django Admin;
-- consulta ao banco com `Produto.objects.filter(ativo=True)`;
-- template que mostra somente produtos ativos;
-- funções `formatar_preco` e `produtos_disponiveis`, preservadas dos dias anteriores;
-- testes automatizados e verificação de código no GitHub Actions.
+- Python 3.12, Django 5.2 LTS e Pillow;
+- aplicações `cardapio` e `pedidos`;
+- modelo `Produto` com o contrato original `nome`, `preco_centavos`, `ativo` e imagem opcional;
+- upload pelo Django Admin em `media/produtos/`, com fallback visual quando não há imagem;
+- formulário público com CSRF para nome fictício do cliente e quantidades de vários produtos ativos;
+- validação no servidor para pedido vazio, nome, quantidade entre 0 e 20 e produto inativo;
+- preços relidos do banco: o navegador não informa o preço;
+- criação atômica de `Pedido` e `ItemPedido`, com snapshot de nome e preço, total persistido e página de confirmação;
+- consulta de pedidos e itens pelo Django Admin;
+- funções legadas `formatar_preco` e `produtos_disponiveis` preservadas;
+- testes automatizados e verificações no GitHub Actions.
+
+Não há pagamento real, endereço, login de cliente nem integração com WhatsApp.
 
 ## Criar sua própria cópia
 
@@ -27,7 +31,9 @@ cd fogo-palha-django
 
 Para alterar o projeto e enviar mudanças para seu próprio GitHub, prefira a opção **Use this template**.
 
-## Instalação no Linux ou macOS
+## Instalação
+
+### Linux ou macOS
 
 ```bash
 python3.12 -m venv .venv
@@ -38,7 +44,7 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-## Instalação no Windows PowerShell
+### Windows PowerShell
 
 ```powershell
 py -3.12 -m venv .venv
@@ -51,53 +57,61 @@ python manage.py runserver
 
 Abra:
 
-- catálogo: `http://127.0.0.1:8000/`;
+- cardápio e compra didática: `http://127.0.0.1:8000/`;
 - administração: `http://127.0.0.1:8000/admin/`.
 
-A conta criada por `createsuperuser` existe somente no banco SQLite local. Ela não é uma conta Firebase e não deve ser enviada ao GitHub.
+A conta administrativa e os pedidos existem somente no banco SQLite local. Use apenas nomes e dados fictícios.
+
+## Produtos e imagens
+
+Cadastre produtos no Django Admin. A imagem é opcional; sem upload, o cardápio mostra um fallback seguro. Durante o desenvolvimento, os arquivos enviados ficam em `media/`, diretório ignorado pelo Git.
+
+O servidor de desenvolvimento do Django entrega esses arquivos quando `DEBUG=True`. Em produção, um servidor de arquivos deve servir `MEDIA_ROOT` separadamente.
 
 ## Dados opcionais de demonstração
-
-Depois de executar as migrations, você pode carregar três registros de exemplo:
 
 ```bash
 python manage.py loaddata produtos_exemplo
 ```
 
-O produto inativo é guardado no banco e aparece no admin, mas não aparece no catálogo público.
+O produto inativo permanece no banco e no admin, mas não aparece no cardápio e não pode ser comprado.
 
-## Fluxo principal
+## Fluxo de compra
 
 ```text
-requisição
-    ↓
-config/urls.py
-    ↓
-cardapio/urls.py
-    ↓
-cardapio/views.py
-    ↓
-Produto.objects.filter(ativo=True)
-    ↓
-contexto {"produtos": produtos}
-    ↓
-cardapio/templates/cardapio/index.html
-    ↓
-resposta HTML
+GET /
+  → lista somente Produto ativo
+  → formulário com CSRF, nome e quantidades
+
+POST /pedidos/
+  → valida os dados
+  → relê produtos e preços no banco
+  → transaction.atomic cria Pedido + ItemPedido
+  → grava snapshots e total em centavos
+  → redireciona para /pedidos/<token-uuid>/
 ```
 
-## Estrutura importante
+A confirmação usa um token UUID não sequencial para não expor pedidos por enumeração. Ela não representa cobrança ou pagamento.
+
+## Estrutura principal
 
 ```text
 .
 ├── cardapio/
-│   ├── fixtures/produtos_exemplo.json
-│   ├── migrations/0001_initial.py
+│   ├── migrations/
 │   ├── static/cardapio/css/estilo.css
 │   ├── templates/cardapio/index.html
 │   ├── admin.py
 │   ├── models.py
 │   ├── regras.py
+│   ├── tests.py
+│   └── views.py
+├── pedidos/
+│   ├── migrations/
+│   ├── templates/pedidos/confirmacao.html
+│   ├── admin.py
+│   ├── models.py
+│   ├── servicos.py
 │   ├── tests.py
 │   ├── urls.py
 │   └── views.py
@@ -108,19 +122,6 @@ resposta HTML
 └── requirements.txt
 ```
 
-## Alterações sugeridas para sua versão
-
-1. Troque o nome e as cores do estabelecimento.
-2. Cadastre seus próprios produtos no admin.
-3. Altere o ícone e a organização dos cartões.
-4. Acrescente um novo campo ao modelo, como `descricao`.
-5. Crie e aplique uma nova migration após mudar o modelo:
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
 ## Testes e qualidade
 
 Instale as dependências de desenvolvimento:
@@ -129,7 +130,7 @@ Instale as dependências de desenvolvimento:
 python -m pip install -r requirements-dev.txt
 ```
 
-Execute as verificações:
+Execute:
 
 ```bash
 ruff check .
@@ -138,9 +139,11 @@ python manage.py makemigrations --check --dry-run
 python manage.py test
 ```
 
+Os testes de upload usam um diretório temporário e uma imagem PNG válida pequena, sem gravar arquivos em `media/`.
+
 ## O que não deve ir para o GitHub
 
-O arquivo `.gitignore` exclui o banco `db.sqlite3`, o ambiente `.venv`, arquivos `.env` e caches. Não publique senhas, superusuários, chaves, tokens ou dados pessoais.
+O `.gitignore` exclui `db.sqlite3`, ambientes virtuais, arquivos `.env`, caches, arquivos coletados e uploads em `media/`. Não publique senhas, superusuários, chaves, tokens, pedidos reais ou dados pessoais.
 
 Este servidor é para desenvolvimento e aprendizagem local. Não use `python manage.py runserver` como servidor de produção.
 
